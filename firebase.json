@@ -1,0 +1,17 @@
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCCTOM7gQsXkjK72xmzUnQuWEdRyHtQriI",
+  authDomain: "signoswap-d299c.firebaseapp.com",
+  projectId: "signoswap-d299c",
+  storageBucket: "signoswap-d299c.firebasestorage.app",
+  messagingSenderId: "898315378289",
+  appId: "1:898315378289:web:013df6f93b4862a19e85d0",
+  measurementId: "G-7ZREKLN3ZZ"
+};
+
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+export { app, analytics };

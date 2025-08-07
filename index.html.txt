@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SignoSwap - Fundo Universo</title>
+<style>
+  * {
+    margin: 0; padding: 0; box-sizing: border-box;
+  }
+  body, html {
+    height: 100%;
+    overflow: hidden;
+    background: radial-gradient(circle at top, #1a002b, #000);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #eee;
+  }
+  #backgroundCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    pointer-events: none;
+    background: transparent;
+  }
+  .container {
+    position: relative;
+    max-width: 480px;
+    background: rgba(255,255,255,0.07);
+    margin: 60px auto 80px;
+    padding: 30px 25px 40px;
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 0 30px rgba(255,105,180,0.15);
+    backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    z-index: 1;
+  }
+  label, select, input, .btn, .desc, .history {
+    width: 100%;
+    border-radius: 12px;
+    box-sizing: border-box;
+  }
+  label {
+    font-weight: 600;
+    padding-bottom: 6px;
+  }
+  select, input {
+    font-size: 1rem;
+    padding: 12px 14px;
+    border: none;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    box-shadow: inset 0 0 8px rgba(255,255,255,0.15);
+    transition: background 0.3s ease;
+  }
+  select option {
+    padding-left: 8px;
+  }
+  .btn {
+    font-weight: 700;
+    font-size: 1.25rem;
+    padding: 16px;
+    background: linear-gradient(90deg, #ae52ff, #ff8edb);
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 0 20px rgba(255, 100, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.4s ease;
+  }
+  .btn:hover {
+    background: linear-gradient(90deg, #ff8edb, #ae52ff);
+    box-shadow: 0 0 35px rgba(255, 100, 255, 0.7);
+    transform: scale(1.05);
+  }
+  .btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 0 10px rgba(255, 100, 255, 0.6);
+  }
+  .desc {
+    margin-top: 25px;
+    font-size: 1rem;
+    font-style: italic;
+    text-align: center;
+    color: #d8b9e8;
+    min-height: 64px;
+    line-height: 1.4;
+  }
+  .history {
+    margin-top: 40px;
+    max-height: 150px;
+    overflow-y: auto;
+    padding: 16px;
+    font-size: 0.95rem;
+    color: #ffb3e6;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 15px;
+    box-shadow: inset 0 0 8px rgba(255, 100, 255, 0.3);
+  }
+  .history p {
+    margin-bottom: 8px;
+  }
+  @media (max-width: 600px) {
+    .container {
+      margin: 30px 16px 60px;
+      padding: 25px 18px 35px;
+    }
+    h1 {
+      font-size: 1.9rem;
+    }
+    .btn {
+      font-size: 1.1rem;
+      padding: 14px;
+    }
+  }
+</style>
+</head>
+<body>
+  <canvas id="backgroundCanvas"></canvas>
+
+  <div class="container">
+    <h1>SignoSwap</h1>
+
+    <label for="fromToken">De:</label>
+    <select id="fromToken"></select>
+
+    <label for="toToken">Para:</label>
+    <select id="toToken"></select>
+
+    <label for="amount">Valor:</label>
+    <input type="number" id="amount" placeholder="Digite a quantia..." min="0" />
+
+    <button class="btn" id="swapBtn">Trocar</button>
+
+    <div class="desc" id="descSigno">Escolha um signo para ver sua descrição mística.</div>
+
+    <div class="history" id="historyLog">
+      <p><em>Histórico de swaps aparecerá aqui...</em></p>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('backgroundCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+
+    function resizeCanvas() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Star {
+      constructor() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.radius = Math.random() * 1.2 + 0.3;
+        this.speed = 0.1 + Math.random() * 0.3;
+        this.alpha = Math.random() * 0.8 + 0.2;
+        this.phase = Math.random() * 2 * Math.PI;
+      }
+
+      update() {
+        this.x -= this.speed;
+        this.phase += 0.03;
+        this.alpha = 0.5 + 0.5 * Math.sin(this.phase);
+        if (this.x < 0) this.x = width;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha.toFixed(2)})`;
+        ctx.shadowColor = 'white';
+        ctx.shadowBlur = 4;
+        ctx.fill();
+      }
+    }
+
+    class Satellite {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height * 0.8 + height * 0.1;
+        this.length = 20 + Math.random() * 30;
+        this.speed = 0.5 + Math.random() * 0.7;
+        this.alpha = 0.6 + Math.random() * 0.4;
+      }
+      update() {
+        this.x -= this.speed;
+        if (this.x < -this.length) this.reset(), this.x = width + this.length;
+      }
+      draw() {
+        const gradient = ctx.createLinearGradient(this.x, this.y, this.x + this.length, this.y);
+        gradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
+        gradient.addColorStop(0.5, `rgba(255, 255, 255, ${this.alpha.toFixed(2)})`);
+        gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x + this.length, this.y);
+        ctx.shadowColor = 'white';
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+      }
+    }
+
+    // Criar estrelas e satélites
+    const stars = [];
+    const satellites = [];
+    const STAR_COUNT = 150;
+    const SATELLITE_COUNT = 8;
+
+    for (let i = 0; i < STAR_COUNT; i++) {
+      stars.push(new Star());
+    }
+    for (let i = 0; i < SATELLITE_COUNT; i++) {
+      satellites.push(new Satellite());
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = 'rgba(26,0,43,0.3)';
+      ctx.fillRect(0, 0, width, height);
+
+      stars.forEach(star => {
+        star.update();
+        star.draw();
+      });
+
+      satellites.forEach(sat => {
+        sat.update();
+        sat.draw();
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // Dados signos com emoji e descrição mística
+    const signos = [
+      { key: "aries", emoji: "♈", nome: "Áries", desc: "Áries é corajoso, enérgico e impulsivo, um verdadeiro líder que não teme desafios." },
+      { key: "touro", emoji: "♉", nome: "Touro", desc: "Touro é persistente, determinado e leal, buscando segurança e estabilidade." },
+      { key: "gemeos", emoji: "♊", nome: "Gêmeos", desc: "Gêmeos é comunicativo, curioso e adaptável, com uma mente inquieta." },
+      { key: "cancer", emoji: "♋", nome: "Câncer", desc: "Câncer é sensível, protetor e emocional, valorizando a família e o lar." },
+      { key: "leao", emoji: "♌", nome: "Leão", desc: "Leão é confiante, criativo e carismático, nascido para brilhar no centro das atenções." },
+      { key: "virgem", emoji: "♍", nome: "Virgem", desc: "Virgem é detalhista, analítico e prático, sempre buscando a perfeição." },
+      { key: "libra", emoji: "♎", nome: "Libra", desc: "Libra é diplomático, equilibrado e sociável, apaixonado pela harmonia." },
+      { key: "escorpiao", emoji: "♏", nome: "Escorpião", desc: "Escorpião é intenso, misterioso e determinado, com uma força interior poderosa." },
+      { key: "sagitario", emoji: "♐", nome: "Sagitário", desc: "Sagitário é aventureiro, otimista e filosófico, sempre em busca de liberdade." },
+      { key: "capricornio", emoji: "♑", nome: "Capricórnio", desc: "Capricórnio é disciplinado, responsável e ambicioso, focado no sucesso." },
+      { key: "aquario", emoji: "♒", nome: "Aquário", desc: "Aquário é inovador, independente e humanitário, um visionário do futuro." },
+      { key: "peixes", emoji: "♓", nome: "Peixes", desc: "Peixes é sensível, compassivo e imaginativo, conectado com o mundo dos sonhos." }
+    ];
+
+    function preencherSelects() {
+      const fromSelect = document.getElementById('fromToken');
+      const toSelect = document.getElementById('toToken');
+
+      signos.forEach(s => {
+        const optionFrom = document.createElement('option');
+        optionFrom.value = s.key;
+        optionFrom.textContent = `${s.emoji}  ${s.nome}`;
+        fromSelect.appendChild(optionFrom);
+
+        const optionTo = document.createElement('option');
+        optionTo.value = s.key;
+        optionTo.textContent = `${s.emoji}  ${s.nome}`;
+        toSelect.appendChild(optionTo);
+      });
+
+      fromSelect.value = "aries";
+      toSelect.value = "leao";
+      atualizarDescricao(fromSelect.value);
+    }
+
+    function atualizarDescricao(chave) {
+      const desc = document.getElementById('descSigno');
+      const signo = signos.find(s => s.key === chave);
+      desc.textContent = signo ? signo.desc : "Escolha um signo para ver sua descrição mística.";
+    }
+
+    const historyLog = document.getElementById('historyLog');
+
+    function swapTokens() {
+      const from = document.getElementById('fromToken').value;
+      const to = document.getElementById('toToken').value;
+      const amount = Number(document.getElementById('amount').value);
+      const swapBtn = document.getElementById('swapBtn');
+
+      if (!amount || amount <= 0) {
+        alert("Por favor, insira um valor válido.");
+        return;
+      }
+      if (from === to) {
+        alert("Selecione signos diferentes para trocar.");
+        return;
+      }
+
+      swapBtn.disabled = true;
+      swapBtn.style.transform = 'scale(0.95)';
+      swapBtn.style.boxShadow = '0 0 40px #ff6ab3';
+      setTimeout(() => {
+        swapBtn.style.transform = '';
+        swapBtn.style.boxShadow = '';
+        swapBtn.disabled = false;
+      }, 500);
+
+      const signoFrom = signos.find(s => s.key === from);
+      const signoTo = signos.find(s => s.key === to);
+
+      const newMsg = document.createElement('p');
+      newMsg.textContent = `${signoFrom.emoji} Você trocou ${amount} tokens de ${signoFrom.nome} por ${signoTo.emoji} ${signoTo.nome}!`;
+      historyLog.prepend(newMsg);
+
+      while (historyLog.children.length > 10) {
+        historyLog.removeChild(historyLog.lastChild);
+      }
+    }
+
+    document.getElementById('fromToken').addEventListener('change', e => {
+      atualizarDescricao(e.target.value);
+    });
+    document.getElementById('swapBtn').addEventListener('click', swapTokens);
+
+    preencherSelects();
+  </script>
+</body>
+</html>
